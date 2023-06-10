@@ -85,7 +85,7 @@ namespace Defontana_Prueba_Tecnica.Services
                     .Select(g => new
                     {
                         MarcaId = g.Key,
-                        MargenGanancias = g.Sum(vd => vd.IdProductoNavigation.CostoUnitario - vd.PrecioUnitario) // Cálculo del margen de ganancias
+                        MargenGanancias = g.Sum(vd => vd.PrecioUnitario - vd.IdProductoNavigation.CostoUnitario) // Cálculo del margen de ganancias
                     })
                     .OrderByDescending(m => m.MargenGanancias)
                     .FirstOrDefault();
@@ -102,33 +102,27 @@ namespace Defontana_Prueba_Tecnica.Services
                 Console.WriteLine();
 
                 // El producto que más se vende en cada local
-                var productosMasVendidos = ventasUltimos30Dias
+                var productosMasVendidosPorLocal = ventasUltimos30Dias
                     .SelectMany(v => v.VentaDetalles)
-                    .GroupBy(vd => new { vd.IdVentaNavigation.IdLocal, vd.IdProducto })
-                    .OrderByDescending(g => g.Sum(vd => vd.Cantidad))
-                    .Select(g => new { g.Key.IdLocal, g.Key.IdProducto, TotalCantidad = g.Sum(vd => vd.Cantidad) })
+                    .GroupBy(vd => new { vd.IdVentaNavigation.IdLocalNavigation.Nombre, NombreProducto = vd.IdProductoNavigation.Nombre })
+                    .Select(g => new
+                    {
+                        NombreLocal = g.Key.Nombre,
+                        NombreProducto = g.Key.NombreProducto,
+                        TotalVendido = g.Sum(vd => vd.Cantidad)
+                    })
+                    .GroupBy(p => p.NombreLocal)
+                    .Select(g => g.OrderByDescending(p => p.TotalVendido).First())
                     .ToList();
 
-                foreach (var producto in productosMasVendidos)
+                foreach (var productoLocal in productosMasVendidosPorLocal)
                 {
-                    var nombreProducto = ventasUltimos30Dias
-                        .SelectMany(v => v.VentaDetalles)
-                        .Where(vd => vd.IdProducto == producto.IdProducto)
-                        .Select(vd => vd.IdProductoNavigation.Nombre)
-                        .FirstOrDefault();
-
-                    var nombreLocal = ventasUltimos30Dias
-                        .Where(v => v.IdLocal == producto.IdLocal)
-                        .Select(v => v.IdLocalNavigation.Nombre)
-                        .FirstOrDefault();
-
-                    Console.WriteLine($"Producto más vendido en el local {nombreLocal}:");
-                    Console.WriteLine($"Producto: {nombreProducto}");
-                    Console.WriteLine($"Cantidad vendida: {producto.TotalCantidad}");
-                    Console.WriteLine("-----------------------------");
-
-
+                    Console.WriteLine($"Local: {productoLocal.NombreLocal}");
+                    Console.WriteLine($"Producto más vendido: {productoLocal.NombreProducto}");
+                    Console.WriteLine($"Total vendido: {productoLocal.TotalVendido}");
+                    Console.WriteLine();
                 }
+
             }
         }
     }
